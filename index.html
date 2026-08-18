@@ -112,7 +112,7 @@
                         ? 'bg-ocean-700 text-white border-ocean-700 shadow-sm' 
                         : 'bg-white text-slate-600 border-slate-200 hover:border-ocean-300']"
             >
-              <span>{{ trip.dateRange }} {{ trip.title }}</span>
+              <span>{{ trip.dateRange || '未定日期' }} {{ trip.title }}</span>
             </button>
           </div>
         </div>
@@ -123,7 +123,6 @@
           <!-- 行程標頭與日期選擇 -->
           <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-3 shadow-sm border border-ocean-100 flex items-center justify-between gap-2">
             
-            <!-- 日期選擇器區域（已移除最前面圖示，解決重疊問題） -->
             <div class="flex items-center gap-1 bg-coral-100/80 px-2.5 py-1.5 rounded-full text-xs font-medium">
               <input 
                 type="date" 
@@ -140,7 +139,6 @@
                 @change="updateTripDateRange"
                 class="bg-transparent focus:outline-none w-24 text-center text-coral-400 font-bold cursor-pointer text-[11px]"
               />
-
             </div>
 
             <!-- 名稱輸入與垃圾桶 -->
@@ -194,7 +192,7 @@
                     <td class="py-1.5 px-1"><input v-model="row.name" @change="saveData" class="w-full bg-transparent focus:outline-none font-medium" /></td>
                     <td class="py-1.5 px-1"><input v-model.number="row.count" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-center rounded py-0.5 focus:outline-none" /></td>
                     <td class="py-1.5 px-1"><input v-model.number="row.price" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-right rounded py-0.5 focus:outline-none" /></td>
-                    <td class="py-1.5 px-1 text-right font-semibold text-ocean-700">{{ (row.count * row.price) || 0 }}</td>
+                    <td class="py-1.5 px-1 text-right font-semibold text-ocean-700">{{ ((row.count || 0) * (row.price || 0)) }}</td>
                     <td class="py-1.5 px-1"><input v-model="row.note" @change="saveData" class="w-full bg-transparent text-slate-400 focus:outline-none text-[11px]" placeholder="備註" /></td>
                     <td class="py-1.5 px-1 text-center"><button @click="removeRow(sheet, rIndex)" class="text-slate-300 hover:text-red-400"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></td>
                   </tr>
@@ -264,7 +262,7 @@
                     <td class="py-1.5 px-1 text-center font-bold text-ocean-700">{{ row.days || 0 }}</td>
                     <td class="py-1.5 px-1"><input v-model.number="row.people" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-center rounded py-0.5 focus:outline-none" /></td>
                     <td class="py-1.5 px-1"><input v-model.number="row.price" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-right rounded py-0.5 focus:outline-none" /></td>
-                    <td class="py-1.5 px-1 text-right font-semibold text-ocean-700">{{ (row.days * row.people * row.price) || 0 }}</td>
+                    <td class="py-1.5 px-1 text-right font-semibold text-ocean-700">{{ ((row.days || 0) * (row.people || 0) * (row.price || 0)) }}</td>
                     <td class="py-1.5 px-1 text-center"><button @click="removeRow(sheet, rIndex)" class="text-slate-300 hover:text-red-400"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></td>
                   </tr>
                 </tbody>
@@ -362,7 +360,7 @@
                     <td class="py-1.5 px-1"><input v-model="row.name" @change="saveData" class="w-full bg-transparent focus:outline-none font-medium" /></td>
                     <td class="py-1.5 px-1"><input v-model.number="row.count" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-center rounded py-0.5 focus:outline-none" /></td>
                     <td class="py-1.5 px-1"><input v-model.number="row.price" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-right rounded py-0.5 focus:outline-none" /></td>
-                    <td class="py-1.5 px-1 text-right font-semibold text-amber-600">{{ (row.count * row.price) || 0 }}</td>
+                    <td class="py-1.5 px-1 text-right font-semibold text-amber-600">{{ ((row.count || 0) * (row.price || 0)) }}</td>
                     <td class="py-1.5 px-1"><input v-model="row.note" @change="saveData" class="w-full bg-transparent text-slate-400 focus:outline-none text-[11px]" placeholder="備註" /></td>
                     <td class="py-1.5 px-1 text-center"><button @click="removeRow(sheet, rIndex)" class="text-slate-300 hover:text-red-400"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></td>
                   </tr>
@@ -464,7 +462,7 @@
               endDate: '',
               dateRange: '',
               sheets: [
-                { id: 's1', name: 'FUN DIVE應收款項', type: 'fundive', rows: defaultFunDiveRows },
+                { id: 's1', name: 'FUN DIVE應收款項', type: 'fundive', rows: JSON.parse(JSON.stringify(defaultFunDiveRows)) },
                 {
                   id: 's2',
                   name: '上課應收款項',
@@ -497,7 +495,7 @@
                   id: 's5',
                   name: '應付款項',
                   type: 'payable',
-                  rows: defaultPayableRows
+                  rows: JSON.parse(JSON.stringify(defaultPayableRows))
                 }
               ]
             }
@@ -572,7 +570,7 @@
           });
         };
 
-        // 更新日期顯示格式 (無年份 8/19-8/19)
+        // 更新日期顯示格式
         const updateTripDateRange = () => {
           if (!activeTrip.value) return;
           if (!activeTrip.value.startDate && !activeTrip.value.endDate) {
@@ -614,6 +612,9 @@
             ]
           };
 
+          if (!tripsData.value[currentMainTab.value]) {
+            tripsData.value[currentMainTab.value] = [];
+          }
           tripsData.value[currentMainTab.value].push(newTrip);
           activeTripId.value = newTrip.id;
           saveData();
@@ -632,28 +633,22 @@
           }
         };
 
-        const deleteSheetBySheet = (sheetTarget) => {
-          if (confirm('確定要刪除這個表單嗎？')) {
-            activeTrip.value.sheets = activeTrip.value.sheets.filter(s => s.id !== sheetTarget.id);
+        const deleteSheetBySheet = (sheet) => {
+          if (!activeTrip.value) return;
+          if (confirm(`確定要刪除「${sheet.name}」表單嗎？`)) {
+            activeTrip.value.sheets = activeTrip.value.sheets.filter(s => s.id !== sheet.id);
             saveData();
           }
         };
 
-        const onInsuranceDateChange = (row) => {
-          if (row.startDate && row.endDate) {
-            const start = new Date(row.startDate);
-            const end = new Date(row.endDate);
-            const diffTime = end.getTime() - start.getTime();
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            row.days = diffDays > 0 ? diffDays : 0;
-          } else {
-            row.days = 0;
-          }
-          saveData();
-        };
-
         const addRow = (sheet) => {
-          sheet.rows.push({ name: '', count: 0, countText: '0', price: 0, total: 0, note: '' });
+          if (sheet.type === 'deposit') {
+            sheet.rows.push({ name: '新品項', total: 0, note: '' });
+          } else if (sheet.type === 'class') {
+            sheet.rows.push({ name: '新品項', countText: '0', price: 0, note: '' });
+          } else {
+            sheet.rows.push({ name: '新品項', count: 0, price: 0, note: '' });
+          }
           saveData();
           refreshIcons();
         };
@@ -669,25 +664,36 @@
           saveData();
         };
 
-        const calculateClassRowTotal = (row) => {
-          if (!row.price) return 0;
-          const text = String(row.countText || '');
-          const numbers = text.match(/\d+/g);
-          if (numbers && numbers.length > 0) {
-            const multiplier = numbers.reduce((acc, num) => acc * parseInt(num, 10), 1);
-            return multiplier * row.price;
+        const onInsuranceDateChange = (row) => {
+          if (row.startDate && row.endDate) {
+            const start = new Date(row.startDate);
+            const end = new Date(row.endDate);
+            const diffTime = end.getTime() - start.getTime();
+            if (diffTime >= 0) {
+              row.days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            } else {
+              row.days = 0;
+            }
+          } else {
+            row.days = 0;
           }
-          return 0;
+          saveData();
+        };
+
+        const calculateClassRowTotal = (row) => {
+          const count = parseFloat(row.countText) || 0;
+          const price = parseFloat(row.price) || 0;
+          return count * price;
         };
 
         const calculateSheetTotal = (sheet) => {
           if (!sheet || !sheet.rows) return 0;
           if (sheet.type === 'deposit') {
-            return sheet.rows.reduce((sum, r) => sum + (r.total || 0), 0);
-          } else if (sheet.type === 'insurance') {
-            return sheet.rows.reduce((sum, r) => sum + ((r.days || 0) * (r.people || 0) * (r.price || 0)), 0);
+            return sheet.rows.reduce((sum, r) => sum + (parseFloat(r.total) || 0), 0);
           } else if (sheet.type === 'class') {
             return sheet.rows.reduce((sum, r) => sum + calculateClassRowTotal(r), 0);
+          } else if (sheet.type === 'insurance') {
+            return sheet.rows.reduce((sum, r) => sum + ((r.days || 0) * (r.people || 0) * (r.price || 0)), 0);
           } else {
             return sheet.rows.reduce((sum, r) => sum + ((r.count || 0) * (r.price || 0)), 0);
           }
@@ -695,30 +701,26 @@
 
         const calculateTripReceivableTotal = (trip) => {
           if (!trip || !trip.sheets) return 0;
-          let income = 0;
-          let deposit = 0;
-
-          trip.sheets.forEach(sheet => {
-            const total = calculateSheetTotal(sheet);
-            if (sheet.type === 'deposit') {
-              deposit += total;
-            } else if (sheet.type !== 'payable') {
-              income += total;
+          let total = 0;
+          trip.sheets.forEach(s => {
+            if (s.type === 'deposit') {
+              total -= calculateSheetTotal(s);
+            } else if (s.type !== 'payable') {
+              total += calculateSheetTotal(s);
             }
           });
-
-          return income - deposit;
+          return total;
         };
 
         const getPayableTotal = (trip) => {
           if (!trip || !trip.sheets) return 0;
-          let payable = 0;
-          trip.sheets.forEach(sheet => {
-            if (sheet.type === 'payable') {
-              payable += calculateSheetTotal(sheet);
+          let total = 0;
+          trip.sheets.forEach(s => {
+            if (s.type === 'payable') {
+              total += calculateSheetTotal(s);
             }
           });
-          return payable;
+          return total;
         };
 
         const calculateTripFinalNetTotal = (trip) => {
@@ -728,26 +730,27 @@
         return {
           mainTabs,
           currentMainTab,
-          currentTabInfo,
-          currentTrips,
           activeTripId,
+          tripsData,
+          currentTrips,
+          currentTabInfo,
           activeTrip,
           activeReceivableSheets,
           activePayableSheets,
+          saveData,
+          updateTripDateRange,
           createNewTripGroup,
           deleteTrip,
           deleteSheetBySheet,
-          updateTripDateRange,
-          onInsuranceDateChange,
           addRow,
           addInsuranceRow,
           removeRow,
+          onInsuranceDateChange,
           calculateClassRowTotal,
           calculateSheetTotal,
           calculateTripReceivableTotal,
           getPayableTotal,
-          calculateTripFinalNetTotal,
-          saveData
+          calculateTripFinalNetTotal
         };
       }
     }).mount('#app');
