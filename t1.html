@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ocean Accounting App</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ocean: {
+              50: '#f0f7f9',
+              100: '#e1eff3',
+              200: '#b8dbe5',
+              300: '#8ec7d7',
+              500: '#489fb5',
+              700: '#16697a',
+              900: '#003049'
+            },
+            coral: {
+              100: '#fde8e5',
+              400: '#e07a5f'
+            },
+            sand: '#fdfab7'
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    /* 隱藏預設滾動條但保持可滾動 */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    body {
+      background-color: #f7fafc;
+      user-select: none;
+    }
+  </style>
+</head>
+<body class="flex justify-center bg-slate-100 min-h-screen">
+
+  <div id="app" class="w-full max-w-md bg-ocean-50 min-h-screen flex flex-col shadow-2xl relative overflow-hidden text-slate-700">
+    
+    <!-- 背景海洋插畫元素裝飾 (對應圖一極簡線條感) -->
+    <div class="absolute top-12 right-4 opacity-20 pointer-events-none">
+      <i data-lucide="fish" class="w-16 h-16 text-ocean-700"></i>
+    </div>
+    <div class="absolute bottom-20 left-2 opacity-15 pointer-events-none">
+      <i data-lucide="waves" class="w-24 h-24 text-ocean-500"></i>
+    </div>
+
+    <!-- 頂部頁首：主分頁選單 (從上至下以 ICON 呈現) -->
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-ocean-100 px-4 py-3 shadow-sm rounded-b-2xl">
+      <div class="flex justify-around items-center">
+        <button 
+          v-for="tab in mainTabs" 
+          :key="tab.id"
+          @click="currentMainTab = tab.id"
+          :class="['flex flex-col items-center p-2 rounded-xl transition-all duration-200', 
+                   currentMainTab === tab.id ? 'bg-ocean-500 text-white shadow-md scale-105' : 'text-slate-400 hover:text-ocean-500']"
+        >
+          <i :data-lucide="tab.icon" class="w-5 h-5"></i>
+          <span class="text-[10px] mt-1 font-medium">{{ tab.name }}</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main class="flex-1 flex flex-col p-4 overflow-y-auto pb-24 z-10">
+      
+      <!-- 當前分頁標題與新增按鈕 -->
+      <div class="flex justify-between items-center mb-3">
+        <h1 class="text-lg font-bold text-ocean-900 flex items-center gap-2">
+          <i :data-lucide="currentTabInfo.icon" class="w-5 h-5 text-ocean-500"></i>
+          {{ currentTabInfo.name }}
+        </h1>
+        <button 
+          @click="createNewSheet"
+          class="flex items-center gap-1 text-xs bg-ocean-500 hover:bg-ocean-700 text-white px-3 py-1.5 rounded-full shadow transition-all active:scale-95"
+        >
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>新增表單</span>
+        </button>
+      </div>
+
+      <!-- 若無表單時的提示 -->
+      <div v-if="currentSheets.length === 0" class="flex-1 flex flex-col items-center justify-center text-slate-400 py-12 border-2 border-dashed border-ocean-200 rounded-3xl my-auto">
+        <i data-lucide="anchor" class="w-12 h-12 mb-2 stroke-1 text-ocean-300"></i>
+        <p class="text-sm">目前沒有表單，點擊右上方新增</p>
+      </div>
+
+      <template v-else>
+        <!-- 日期區間選擇器 (橫向滑動) -->
+        <div class="mb-4">
+          <label class="text-xs text-slate-400 mb-1 block font-medium">選擇日期區間（橫向滑動）：</label>
+          <div class="flex gap-2 overflow-x-auto no-scrollbar py-1">
+            <button 
+              v-for="sheet in currentSheets" 
+              :key="sheet.id"
+              @click="activeSheetId = sheet.id"
+              :class="['px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border',
+                       activeSheetId === sheet.id 
+                        ? 'bg-ocean-700 text-white border-ocean-700 shadow-sm' 
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-ocean-300']"
+            >
+              {{ sheet.dateRange }} {{ sheet.title }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 當前選中的表單內容區 -->
+        <div v-if="activeSheet" class="bg-white/90 backdrop-blur-sm rounded-3xl p-4 shadow-sm border border-ocean-100 flex-1 flex flex-col">
+          
+          <!-- 表單名稱編輯 -->
+          <div class="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-2 flex-1">
+              <span class="text-xs bg-coral-100 text-coral-400 px-2.5 py-1 rounded-lg font-bold">{{ activeSheet.dateRange }}</span>
+              <input 
+                v-model="activeSheet.title" 
+                @change="saveData"
+                type="text" 
+                class="font-bold text-slate-700 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-ocean-500 focus:outline-none px-1 text-sm flex-1"
+                placeholder="命名表單..."
+              />
+            </div>
+            <button @click="deleteSheet(activeSheet.id)" class="text-slate-300 hover:text-red-400 p-1">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- 計算表格 (圖二美化版) -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="text-slate-400 border-b border-slate-200">
+                  <th class="py-2 px-1 font-medium">品項</th>
+                  <th class="py-2 px-1 font-medium w-12 text-center">數量</th>
+                  <th class="py-2 px-1 font-medium w-10 text-center">單位</th>
+                  <th class="py-2 px-1 font-medium w-16 text-right">單價</th>
+                  <th class="py-2 px-1 font-medium w-16 text-right">總價</th>
+                  <th class="py-2 px-1 font-medium">備註</th>
+                  <th class="w-6"></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr v-for="(row, index) in activeSheet.rows" :key="index" class="hover:bg-ocean-50/50">
+                  <td class="py-2 px-1">
+                    <input v-model="row.name" @change="saveData" type="text" class="w-full bg-transparent focus:outline-none font-medium" placeholder="品項" />
+                  </td>
+                  <td class="py-2 px-1">
+                    <input v-model.number="row.count" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-center rounded py-0.5 focus:outline-none" />
+                  </td>
+                  <td class="py-2 px-1">
+                    <input v-model="row.unit" @change="saveData" type="text" class="w-full bg-transparent text-center focus:outline-none text-slate-400" placeholder="間/位" />
+                  </td>
+                  <td class="py-2 px-1">
+                    <input v-model.number="row.price" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-right rounded py-0.5 focus:outline-none" />
+                  </td>
+                  <td class="py-2 px-1 text-right font-semibold text-ocean-700">
+                    {{ (row.count * row.price) || 0 }}
+                  </td>
+                  <td class="py-2 px-1">
+                    <input v-model="row.note" @change="saveData" type="text" class="w-full bg-transparent text-slate-400 focus:outline-none text-[11px]" placeholder="備註" />
+                  </td>
+                  <td class="py-2 px-1 text-center">
+                    <button @click="removeRow(index)" class="text-slate-300 hover:text-red-400">
+                      <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- 新增欄位與總額計算 -->
+          <div class="mt-4 pt-3 border-t border-slate-200 flex justify-between items-center">
+            <button @click="addRow" class="text-xs text-ocean-500 hover:text-ocean-700 flex items-center gap-1 font-medium">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i> 新增品項
+            </button>
+            <div class="text-right">
+              <span class="text-xs text-slate-400 block">金額小計</span>
+              <span class="text-lg font-bold text-coral-400">$ {{ calculateTotal(activeSheet) }}</span>
+            </div>
+          </div>
+
+        </div>
+      </template>
+    </main>
+
+    <!-- 底部表單分頁選單（以 ICON 方式從下至上逐漸增加，支援上下滑動） -->
+    <footer class="fixed bottom-0 max-w-md w-full bg-white/90 backdrop-blur-md border-t border-ocean-100 rounded-t-3xl p-3 z-20 shadow-lg">
+      <div class="text-[10px] text-slate-400 text-center mb-1.5 font-medium">子表單切換 (由下至上新增)</div>
+      <div class="max-h-24 overflow-y-auto flex flex-col-reverse gap-1.5 pr-1">
+        <button 
+          v-for="sheet in currentSheets" 
+          :key="sheet.id"
+          @click="activeSheetId = sheet.id"
+          :class="['flex items-center gap-2 px-3 py-2 rounded-xl text-xs transition-all w-full text-left',
+                   activeSheetId === sheet.id ? 'bg-ocean-100 text-ocean-700 font-bold' : 'bg-slate-50 text-slate-500 hover:bg-ocean-50']"
+        >
+          <i data-lucide="file-text" class="w-3.5 h-3.5 text-ocean-500 shrink-0"></i>
+          <span class="truncate">{{ sheet.dateRange }} {{ sheet.title }}</span>
+        </button>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
+
+    createApp({
+      setup() {
+        // 頂部 5 個主 Tab
+        const mainTabs = [
+          { id: 'group', name: '潛團', icon: 'users' },
+          { id: 'class', name: '上課', icon: 'graduation-cap' },
+          { id: 'fundive', name: 'Fun Dive', icon: 'compass' },
+          { id: 'try', name: '體驗', icon: 'sparkles' },
+          { id: 'summary', name: '每月總結', icon: 'pie-chart' }
+        ];
+
+        const currentMainTab = ref('group');
+        const activeSheetId = ref(null);
+        
+        // 預設預載的測試資料 (圖二資料範例)
+        const defaultSheets = {
+          group: [
+            {
+              id: 'sheet_1',
+              dateRange: '8/18-8/20',
+              title: '墾丁潛團費用',
+              rows: [
+                { name: '三人房 (假日)', count: 3, unit: '間', price: 2500, note: '' },
+                { name: '四人房 (假日)', count: 3, unit: '間', price: 3100, note: '' },
+                { name: '機車', count: 18, unit: '台', price: 300, note: '6台三天' },
+                { name: '船潛', count: 24, unit: '位', price: 1750, note: '' },
+                { name: '空氣氣瓶', count: 51, unit: '隻', price: 200, note: '12+12+8+7+12' },
+                { name: '船潛高氧補差額', count: 12, unit: '隻', price: 200, note: '船潛6位更換高氧一趟' },
+                { name: '輕裝(套鞋 防寒衣 蛙鞋)', count: 36, unit: '份', price: 50, note: '共12件3天' }
+              ]
+            }
+          ],
+          class: [],
+          fundive: [],
+          try: [],
+          summary: []
+        };
+
+        const sheetsData = ref(defaultSheets);
+
+        // 初始化 LocalStorage，防止資料刪除
+        onMounted(() => {
+          const savedData = localStorage.getItem('ocean_accounting_data');
+          if (savedData) {
+            try {
+              sheetsData.value = JSON.parse(savedData);
+            } catch (e) {
+              console.error('資料讀取失敗，使用預設值', e);
+            }
+          }
+          if (currentSheets.value.length > 0) {
+            activeSheetId.value = currentSheets.value[0].id;
+          }
+          refreshIcons();
+        });
+
+        // 保存資料至 LocalStorage
+        const saveData = () => {
+          localStorage.setItem('ocean_accounting_data', JSON.stringify(sheetsData.value));
+        };
+
+        // 當前主 TAB 的所有表單
+        const currentSheets = computed(() => {
+          return sheetsData.value[currentMainTab.value] || [];
+        });
+
+        // 當前主 TAB 的資訊
+        const currentTabInfo = computed(() => {
+          return mainTabs.find(t => t.id === currentMainTab.value) || mainTabs[0];
+        });
+
+        // 當前選中的子表單
+        const activeSheet = computed(() => {
+          return currentSheets.value.find(s => s.id === activeSheetId.value) || currentSheets.value[0] || null;
+        });
+
+        // 切換主 Tab 時更新選中的子表單
+        watch(currentMainTab, () => {
+          if (currentSheets.value.length > 0) {
+            activeSheetId.value = currentSheets.value[0].id;
+          } else {
+            activeSheetId.value = null;
+          }
+          refreshIcons();
+        });
+
+        watch(activeSheetId, () => {
+          refreshIcons();
+        });
+
+        // 重新渲染 Lucide 圖示
+        const refreshIcons = () => {
+          nextTick(() => {
+            if (window.lucide) {
+              lucide.createIcons();
+            }
+          });
+        };
+
+        // 新增表單
+        const createNewSheet = () => {
+          const today = new Date();
+          const dateStr = `${today.getMonth() + 1}/${today.getDate()}-${today.getMonth() + 1}/${today.getDate() + 2}`;
+          const newSheet = {
+            id: 'sheet_' + Date.now(),
+            dateRange: dateStr,
+            title: '新行程記錄',
+            rows: [
+              { name: '雙人房 (平日)', count: 0, unit: '間', price: 1500, note: '' },
+              { name: '機車', count: 0, unit: '台', price: 300, note: '' }
+            ]
+          };
+          sheetsData.value[currentMainTab.value].push(newSheet);
+          activeSheetId.value = newSheet.id;
+          saveData();
+          refreshIcons();
+        };
+
+        // 刪除表單
+        const deleteSheet = (id) => {
+          if (confirm('確定要刪除這張表單嗎？')) {
+            sheetsData.value[currentMainTab.value] = sheetsData.value[currentMainTab.value].filter(s => s.id !== id);
+            if (currentSheets.value.length > 0) {
+              activeSheetId.value = currentSheets.value[0].id;
+            } else {
+              activeSheetId.value = null;
+            }
+            saveData();
+          }
+        };
+
+        // 新增表格列
+        const addRow = () => {
+          if (activeSheet.value) {
+            activeSheet.value.rows.push({ name: '', count: 1, unit: '項', price: 0, note: '' });
+            saveData();
+            refreshIcons();
+          }
+        };
+
+        // 刪除表格列
+        const removeRow = (index) => {
+          if (activeSheet.value) {
+            activeSheet.value.rows.splice(index, 1);
+            saveData();
+          }
+        };
+
+        // 計算總額
+        const calculateTotal = (sheet) => {
+          if (!sheet || !sheet.rows) return 0;
+          const total = sheet.rows.reduce((sum, row) => {
+            return sum + ((row.count || 0) * (row.price || 0));
+          }, 0);
+          return total.toLocaleString();
+        };
+
+        return {
+          mainTabs,
+          currentMainTab,
+          currentTabInfo,
+          currentSheets,
+          activeSheetId,
+          activeSheet,
+          createNewSheet,
+          deleteSheet,
+          addRow,
+          removeRow,
+          calculateTotal,
+          saveData
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
