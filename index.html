@@ -41,15 +41,10 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     body { background-color: #f7fafc; user-select: none; }
-    /* 隱藏原生 date input 的預設圖示以配合自訂圖示 */
-    input[type="date"]::-webkit-calendar-picker-indicator {
-      opacity: 0;
-      cursor: pointer;
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
+    
+    /* 日期選擇器顏色樣式修正 */
+    input[type="date"] {
+      color-scheme: light;
     }
   </style>
 </head>
@@ -84,7 +79,7 @@
     <!-- 主要內容區 -->
     <main class="flex-1 flex flex-col p-4 overflow-y-auto z-10 pb-16">
       
-      <!-- 當前分頁標題與新增按鈕 (修正圖二多餘的+號) -->
+      <!-- 當前分頁標題與新增按鈕 -->
       <div class="flex justify-between items-center mb-3">
         <h1 class="text-lg font-bold text-ocean-900 flex items-center gap-2">
           <i :data-lucide="currentTabInfo.icon" class="w-5 h-5 text-ocean-500"></i>
@@ -125,40 +120,31 @@
         <!-- 當前選中的行程組合區 -->
         <div v-if="activeTrip" class="flex flex-col gap-4">
           
-          <!-- 行程標頭與日期選擇 (依圖一樣式重製 + 垃圾桶左移與短底線) -->
+          <!-- 行程標頭與日期選擇 -->
           <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-3 shadow-sm border border-ocean-100 flex items-center justify-between gap-2">
             
-            <!-- 圖一風格日期選擇器 -->
-            <div class="flex items-center gap-1.5 bg-coral-100/80 text-coral-400 px-3 py-1.5 rounded-full text-xs font-medium">
-              <i data-lucide="calendar" class="w-3.5 h-3.5 text-coral-400"></i>
+            <!-- 日期選擇器區域（已移除最前面圖示，解決重疊問題） -->
+            <div class="flex items-center gap-1 bg-coral-100/80 px-2.5 py-1.5 rounded-full text-xs font-medium">
+              <input 
+                type="date" 
+                v-model="activeTrip.startDate" 
+                @change="updateTripDateRange"
+                class="bg-transparent focus:outline-none w-24 text-center text-coral-400 font-bold cursor-pointer text-[11px]"
+              />
+              <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-800 flex-shrink-0"></i>
               
-              <div class="relative flex items-center">
-                <input 
-                  type="date" 
-                  v-model="activeTrip.startDate" 
-                  @change="updateTripDateRange"
-                  class="bg-transparent focus:outline-none w-16 text-center text-coral-400 font-bold cursor-pointer"
-                />
-                <span v-if="!activeTrip.startDate" class="absolute pointer-events-none text-coral-400/80 text-[11px]">年 /月 /日</span>
-              </div>
-              
-              <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-800"></i>
               <span class="text-coral-400 font-normal px-0.5">-</span>
               
-              <div class="relative flex items-center">
-                <input 
-                  type="date" 
-                  v-model="activeTrip.endDate" 
-                  @change="updateTripDateRange"
-                  class="bg-transparent focus:outline-none w-16 text-center text-coral-400 font-bold cursor-pointer"
-                />
-                <span v-if="!activeTrip.endDate" class="absolute pointer-events-none text-coral-400/80 text-[11px]">年 /月 /日</span>
-              </div>
-
-              <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-800"></i>
+              <input 
+                type="date" 
+                v-model="activeTrip.endDate" 
+                @change="updateTripDateRange"
+                class="bg-transparent focus:outline-none w-24 text-center text-coral-400 font-bold cursor-pointer text-[11px]"
+              />
+              <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-800 flex-shrink-0"></i>
             </div>
 
-            <!-- 名稱輸入（短底線）與垃圾桶（靠左） -->
+            <!-- 名稱輸入與垃圾桶 -->
             <div class="flex items-center gap-1.5 flex-shrink-0">
               <input 
                 v-model="activeTrip.title" 
@@ -435,25 +421,36 @@
         const currentMainTab = ref('group');
         const activeTripId = ref(null);
 
-        // 預設 FUN DIVE 項目 (數字/備註歸零與清空，僅保留單價)
+        // 預設 FUN DIVE 項目 (數字/備註歸零與清空)
         const defaultFunDiveRows = [
+          { name: '雙人房 (平日)', count: 0, price: 1500, note: '' },
+          { name: '雙人房 (假日)', count: 0, price: 1900, note: '' },
+          { name: '三人房 (平日)', count: 0, price: 2000, note: '' },
           { name: '三人房 (假日)', count: 0, price: 2500, note: '' },
+          { name: '四人房 (平日)', count: 0, price: 2400, note: '' },
           { name: '四人房 (假日)', count: 0, price: 3100, note: '' },
+          { name: '六人房 (平日)', count: 0, price: 3200, note: '' },
           { name: '六人房 (假日)', count: 0, price: 4000, note: '' },
+          { name: '八人房 (平日)', count: 0, price: 4200, note: '' },
+          { name: '八人房 (假日)', count: 0, price: 5300, note: '' },
+          { name: '十人房 (平日)', count: 0, price: 5000, note: '' },
+          { name: '十人房 (假日)', count: 0, price: 6100, note: '' },
+          { name: '背包房 (平日)', count: 0, price: 800, note: '' },
+          { name: '背包房 (假日)', count: 0, price: 900, note: '' },
           { name: '機車', count: 0, price: 300, note: '' },
+          { name: '船票', count: 0, price: 950, note: '' },
           { name: '船潛', count: 0, price: 1750, note: '' },
           { name: '岸潛導潛', count: 0, price: 1350, note: '' },
           { name: '空氣氣瓶', count: 0, price: 200, note: '' },
-          { name: '船票', count: 0, price: 950, note: '' },
           { name: '船潛高氧補差額', count: 0, price: 200, note: '' },
           { name: 'BCD', count: 0, price: 300, note: '' },
           { name: '調節器', count: 0, price: 300, note: '' },
+          { name: '輕裝', count: 0, price: 50, note: '' },
           { name: '水域保險', count: 0, price: 50, note: '' },
-          { name: '輕裝 (套鞋 防寒衣 蛙鞋)', count: 0, price: 50, note: '' },
           { name: '便當', count: 0, price: 130, note: '' }
         ];
 
-        // 預設應付款項項目 (數字/備註歸零與清空)
+        // 預設應付款項項目
         const defaultPayableRows = [
           { name: '教練費', count: 0, price: 5000, note: '' },
           { name: '船費', count: 0, price: 1000, note: '' }
@@ -463,10 +460,10 @@
           group: [
             {
               id: 'trip_1',
-              title: '墾丁潛團費用',
+              title: '潛團',
               startDate: '',
               endDate: '',
-              dateRange: '選擇日期',
+              dateRange: '',
               sheets: [
                 { id: 's1', name: 'FUN DIVE應收款項', type: 'fundive', rows: defaultFunDiveRows },
                 {
@@ -515,7 +512,7 @@
         const tripsData = ref(defaultTripsData);
 
         onMounted(() => {
-          const savedData = localStorage.getItem('ocean_accounting_trips_data_v5');
+          const savedData = localStorage.getItem('ocean_accounting_trips_data_v6');
           if (savedData) {
             try {
               tripsData.value = JSON.parse(savedData);
@@ -530,7 +527,7 @@
         });
 
         const saveData = () => {
-          localStorage.setItem('ocean_accounting_trips_data_v5', JSON.stringify(tripsData.value));
+          localStorage.setItem('ocean_accounting_trips_data_v6', JSON.stringify(tripsData.value));
         };
 
         const currentTrips = computed(() => {
@@ -605,15 +602,15 @@
         const createNewTripGroup = () => {
           const newTrip = {
             id: 'trip_' + Date.now(),
-            title: '新潛團行程',
+            title: '潛團',
             startDate: '',
             endDate: '',
-            dateRange: '選擇日期',
+            dateRange: '',
             sheets: [
               { id: 's_' + Date.now() + '_1', name: 'FUN DIVE應收款項', type: 'fundive', rows: JSON.parse(JSON.stringify(defaultFunDiveRows)) },
               { id: 's_' + Date.now() + '_2', name: '上課應收款項', type: 'class', textbookPaid: false, rows: [{ name: '教練費', countText: '0', price: 5000, note: '' }] },
               { id: 's_' + Date.now() + '_3', name: '全團保險', type: 'insurance', rows: [{ startDate: '', endDate: '', days: 0, people: 0, price: 50 }] },
-              { id: 's_' + Date.now() + '_4', name: '訂金', type: 'deposit', rows: [{ name: '住宿訂金', total: 0, note: '' }] },
+              { id: 's_' + Date.now() + '_4', name: '訂金', type: 'deposit', rows: [{ name: '住宿', total: 0, note: '' }] },
               { id: 's_' + Date.now() + '_5', name: '應付款項', type: 'payable', rows: JSON.parse(JSON.stringify(defaultPayableRows)) }
             ]
           };
