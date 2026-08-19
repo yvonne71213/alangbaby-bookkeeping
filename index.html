@@ -158,21 +158,21 @@
               <table class="w-full text-center text-xs border-collapse">
                 <thead>
                   <tr class="bg-slate-50 text-slate-500 border-b border-slate-200 font-bold">
-                    <th class="py-2 border-r border-slate-200 w-16">月份</th>
-                    <th class="py-2 border-r border-slate-200">應收</th>
-                    <th class="py-2 border-r border-slate-200">應付</th>
-                    <th class="py-2 border-r border-slate-200">淨利</th>
-                    <th class="py-2">備註</th>
+                    <th class="py-2 border-r border-slate-200 w-16 text-center">月份</th>
+                    <th class="py-2 border-r border-slate-200 text-center">應收</th>
+                    <th class="py-2 border-r border-slate-200 text-center">應付</th>
+                    <th class="py-2 border-r border-slate-200 text-center">淨利</th>
+                    <th class="py-2 text-center">備註</th>
                     <th class="w-6"></th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200">
                   <tr v-for="(m, mIdx) in yearData.months" :key="m.month" class="hover:bg-slate-50/50">
-                    <td class="py-2.5 font-bold border-r border-slate-200 text-slate-700">{{ m.month }}月</td>
-                    <td class="py-2.5 border-r border-slate-200 text-ocean-700 font-semibold">$ {{ getMonthlyTotals(yearData.year, m.month).receivable.toLocaleString() }}</td>
-                    <td class="py-2.5 border-r border-slate-200 text-amber-600 font-semibold">$ {{ getMonthlyTotals(yearData.year, m.month).payable.toLocaleString() }}</td>
-                    <td class="py-2.5 border-r border-slate-200 font-bold text-emerald-600">$ {{ getMonthlyTotals(yearData.year, m.month).net.toLocaleString() }}</td>
-                    <td class="py-2.5 px-1">
+                    <td class="py-2.5 font-bold border-r border-slate-200 text-slate-700 text-center">{{ m.month }}月</td>
+                    <td class="py-2.5 border-r border-slate-200 text-ocean-700 font-semibold text-center">$ {{ getMonthlyTotals(yearData.year, m.month).receivable.toLocaleString() }}</td>
+                    <td class="py-2.5 border-r border-slate-200 text-amber-600 font-semibold text-center">$ {{ getMonthlyTotals(yearData.year, m.month).payable.toLocaleString() }}</td>
+                    <td class="py-2.5 border-r border-slate-200 font-bold text-emerald-600 text-center">$ {{ getMonthlyTotals(yearData.year, m.month).net.toLocaleString() }}</td>
+                    <td class="py-2.5 px-1 text-center">
                       <input v-model="m.note" @change="saveData" type="text" placeholder="備註..." class="w-full text-center bg-transparent focus:outline-none text-[11px] text-slate-500" />
                     </td>
                     <td class="py-2.5 text-center">
@@ -261,26 +261,60 @@
                 </button>
               </div>
 
-              <!-- 標準數量/單價表格 -->
-              <div v-if="sheet.type === 'receivable'" class="overflow-x-auto">
-                <table class="w-full text-left text-xs border-collapse">
+              <!-- 全團保險表格 (直連原生日曆選擇器) -->
+              <div v-if="sheet.type === 'insurance'" class="overflow-x-auto">
+                <table class="w-full text-center text-xs border-collapse">
                   <thead>
                     <tr class="text-slate-400 border-b border-slate-100">
-                      <th class="py-1.5 px-1 font-medium">品項</th>
-                      <th class="py-1.5 px-1 font-medium w-16 text-center">{{ sheet.qtyLabel || '數量' }}</th>
-                      <th class="py-1.5 px-1 font-medium w-16 text-right">單價</th>
-                      <th class="py-1.5 px-1 font-medium w-16 text-right">合計</th>
-                      <th class="py-1.5 px-1 font-medium">備註</th>
+                      <th class="py-1.5 px-1 font-medium text-center">日期</th>
+                      <th class="py-1.5 px-1 font-medium w-16 text-center">人數</th>
+                      <th class="py-1.5 px-1 font-medium w-16 text-center">單價</th>
+                      <th class="py-1.5 px-1 font-medium w-16 text-center">合計</th>
                       <th class="w-6"></th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-slate-50">
                     <tr v-for="(row, rIndex) in sheet.rows" :key="rIndex">
-                      <td class="py-1.5 px-1"><input v-model="row.name" @change="saveData" class="w-full bg-transparent focus:outline-none font-medium" /></td>
+                      <td class="py-1.5 px-1 text-center">
+                        <input 
+                          type="date" 
+                          v-model="row.date" 
+                          @change="saveData" 
+                          class="bg-slate-50 border border-slate-200 rounded py-0.5 px-1 text-center text-slate-700 font-medium cursor-pointer focus:outline-none focus:border-ocean-500 text-xs w-28"
+                        />
+                      </td>
+                      <td class="py-1.5 px-1"><input v-model.number="row.people" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-center rounded py-0.5 focus:outline-none" /></td>
+                      <td class="py-1.5 px-1"><input v-model.number="row.price" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-center rounded py-0.5 focus:outline-none" /></td>
+                      <td class="py-1.5 px-1 text-center font-semibold text-ocean-700">{{ ((row.people || 0) * (row.price || 0)) }}</td>
+                      <td class="py-1.5 px-1 text-center"><button @click="removeRow(sheet, rIndex)" class="text-slate-300 hover:text-red-400"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></td>
+                    </tr>
+                  </tbody>
+                </table>
+                <button @click="addRow(sheet)" class="mt-2 text-xs text-ocean-500 hover:text-ocean-700 flex items-center gap-1 font-medium">
+                  <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> 新增保險明細
+                </button>
+              </div>
+
+              <!-- 標準 5 欄位表格 (包含應收款項、應收訂金) -->
+              <div v-else class="overflow-x-auto">
+                <table class="w-full text-center text-xs border-collapse">
+                  <thead>
+                    <tr class="text-slate-400 border-b border-slate-100">
+                      <th class="py-1.5 px-1 font-medium text-center">品項</th>
+                      <th class="py-1.5 px-1 font-medium w-12 text-center">數量</th>
+                      <th class="py-1.5 px-1 font-medium w-16 text-center">單價</th>
+                      <th class="py-1.5 px-1 font-medium w-16 text-center">合計</th>
+                      <th class="py-1.5 px-1 font-medium text-center">備註</th>
+                      <th class="w-6"></th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-50">
+                    <tr v-for="(row, rIndex) in sheet.rows" :key="rIndex">
+                      <td class="py-1.5 px-1 text-left"><input v-model="row.name" @change="saveData" class="w-full bg-transparent text-left focus:outline-none font-medium" /></td>
                       <td class="py-1.5 px-1"><input v-model.number="row.count" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-center rounded py-0.5 focus:outline-none" /></td>
-                      <td class="py-1.5 px-1"><input v-model.number="row.price" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-right rounded py-0.5 focus:outline-none" /></td>
-                      <td class="py-1.5 px-1 text-right font-semibold text-ocean-700">{{ ((row.count || 0) * (row.price || 0)) }}</td>
-                      <td class="py-1.5 px-1"><input v-model="row.note" @change="saveData" class="w-full bg-transparent text-slate-400 focus:outline-none text-[11px]" placeholder="備註" /></td>
+                      <td class="py-1.5 px-1"><input v-model.number="row.price" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-center rounded py-0.5 focus:outline-none" /></td>
+                      <td class="py-1.5 px-1 text-center font-semibold text-ocean-700">{{ getRowTotal(row) }}</td>
+                      <td class="py-1.5 px-1"><input v-model="row.note" @change="saveData" class="w-full bg-transparent text-center text-slate-400 focus:outline-none text-[11px]" placeholder="備註" /></td>
                       <td class="py-1.5 px-1 text-center"><button @click="removeRow(sheet, rIndex)" class="text-slate-300 hover:text-red-400"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></td>
                     </tr>
                   </tbody>
@@ -295,64 +329,6 @@
                     <span>{{ sheet.checkboxLabel }}</span>
                   </label>
                 </div>
-              </div>
-
-              <!-- 全團保險表格 (特殊多欄位) -->
-              <div v-else-if="sheet.type === 'insurance'" class="overflow-x-auto">
-                <table class="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr class="text-slate-400 border-b border-slate-100">
-                      <th class="py-1.5 px-1 font-medium">日期區間</th>
-                      <th class="py-1.5 px-1 font-medium w-10 text-center">天數</th>
-                      <th class="py-1.5 px-1 font-medium w-10 text-center">人數</th>
-                      <th class="py-1.5 px-1 font-medium w-12 text-right">單價</th>
-                      <th class="py-1.5 px-1 font-medium w-12 text-right">合計</th>
-                      <th class="w-6"></th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-slate-50">
-                    <tr v-for="(row, rIndex) in sheet.rows" :key="rIndex">
-                      <td class="py-1.5 px-1 flex items-center gap-0.5">
-                        <input type="date" v-model="row.startDate" @change="saveData" class="w-16 bg-slate-50 text-[10px] rounded p-0.5" />
-                        <span>-</span>
-                        <input type="date" v-model="row.endDate" @change="saveData" class="w-16 bg-slate-50 text-[10px] rounded p-0.5" />
-                      </td>
-                      <td class="py-1.5 px-1"><input v-model.number="row.days" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-center rounded py-0.5 focus:outline-none" /></td>
-                      <td class="py-1.5 px-1"><input v-model.number="row.people" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-center rounded py-0.5 focus:outline-none" /></td>
-                      <td class="py-1.5 px-1"><input v-model.number="row.price" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-right rounded py-0.5 focus:outline-none" /></td>
-                      <td class="py-1.5 px-1 text-right font-semibold text-ocean-700">{{ ((row.days || 0) * (row.people || 0) * (row.price || 0)) }}</td>
-                      <td class="py-1.5 px-1 text-center"><button @click="removeRow(sheet, rIndex)" class="text-slate-300 hover:text-red-400"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></td>
-                    </tr>
-                  </tbody>
-                </table>
-                <button @click="addRow(sheet)" class="mt-2 text-xs text-ocean-500 hover:text-ocean-700 flex items-center gap-1 font-medium">
-                  <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> 新增保險明細
-                </button>
-              </div>
-
-              <!-- 應收訂金表格 -->
-              <div v-else-if="sheet.type === 'deposit'">
-                <table class="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr class="text-slate-400 border-b border-slate-100">
-                      <th class="py-1.5 px-1 font-medium">品項</th>
-                      <th class="py-1.5 px-1 font-medium w-24 text-right">合計</th>
-                      <th class="py-1.5 px-1 font-medium">備註</th>
-                      <th class="w-6"></th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-slate-50">
-                    <tr v-for="(row, rIndex) in sheet.rows" :key="rIndex">
-                      <td class="py-1.5 px-1"><input v-model="row.name" @change="saveData" class="w-full bg-transparent focus:outline-none font-medium" /></td>
-                      <td class="py-1.5 px-1"><input v-model.number="row.total" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-right rounded py-0.5 focus:outline-none font-semibold text-ocean-700" /></td>
-                      <td class="py-1.5 px-1"><input v-model="row.note" @change="saveData" class="w-full bg-transparent text-slate-400 focus:outline-none text-[11px]" placeholder="備註" /></td>
-                      <td class="py-1.5 px-1 text-center"><button @click="removeRow(sheet, rIndex)" class="text-slate-300 hover:text-red-400"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></td>
-                    </tr>
-                  </tbody>
-                </table>
-                <button @click="addRow(sheet)" class="mt-2 text-xs text-ocean-500 hover:text-ocean-700 flex items-center gap-1 font-medium">
-                  <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> 新增訂金項目
-                </button>
               </div>
 
               <div class="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center text-xs">
@@ -401,51 +377,26 @@
                 </button>
               </div>
 
-              <!-- 應付訂金表格結構 -->
-              <div v-if="sheet.type === 'payable_deposit'">
-                <table class="w-full text-left text-xs border-collapse">
+              <!-- 一般應付款項與應付訂金表格結構 -->
+              <div class="overflow-x-auto">
+                <table class="w-full text-center text-xs border-collapse">
                   <thead>
                     <tr class="text-slate-400 border-b border-slate-100">
-                      <th class="py-1.5 px-1 font-medium">品項</th>
-                      <th class="py-1.5 px-1 font-medium w-24 text-right">合計</th>
-                      <th class="py-1.5 px-1 font-medium">備註</th>
-                      <th class="w-6"></th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-slate-50">
-                    <tr v-for="(row, rIndex) in sheet.rows" :key="rIndex">
-                      <td class="py-1.5 px-1"><input v-model="row.name" @change="saveData" class="w-full bg-transparent focus:outline-none font-medium" /></td>
-                      <td class="py-1.5 px-1"><input v-model.number="row.total" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-right rounded py-0.5 focus:outline-none font-semibold text-red-500" /></td>
-                      <td class="py-1.5 px-1"><input v-model="row.note" @change="saveData" class="w-full bg-transparent text-slate-400 focus:outline-none text-[11px]" placeholder="備註" /></td>
-                      <td class="py-1.5 px-1 text-center"><button @click="removeRow(sheet, rIndex)" class="text-slate-300 hover:text-red-400"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></td>
-                    </tr>
-                  </tbody>
-                </table>
-                <button @click="addRow(sheet)" class="mt-2 text-xs text-amber-600 hover:text-amber-700 flex items-center gap-1 font-medium">
-                  <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> 新增訂金項目
-                </button>
-              </div>
-
-              <!-- 一般應付款項表格結構 -->
-              <div v-else class="overflow-x-auto">
-                <table class="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr class="text-slate-400 border-b border-slate-100">
-                      <th class="py-1.5 px-1 font-medium">品項</th>
+                      <th class="py-1.5 px-1 font-medium text-center">品項</th>
                       <th class="py-1.5 px-1 font-medium w-12 text-center">數量</th>
-                      <th class="py-1.5 px-1 font-medium w-16 text-right">單價</th>
-                      <th class="py-1.5 px-1 font-medium w-16 text-right">合計</th>
-                      <th class="py-1.5 px-1 font-medium">備註</th>
+                      <th class="py-1.5 px-1 font-medium w-16 text-center">單價</th>
+                      <th class="py-1.5 px-1 font-medium w-16 text-center">合計</th>
+                      <th class="py-1.5 px-1 font-medium text-center">備註</th>
                       <th class="w-6"></th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-slate-50">
                     <tr v-for="(row, rIndex) in sheet.rows" :key="rIndex">
-                      <td class="py-1.5 px-1"><input v-model="row.name" @change="saveData" class="w-full bg-transparent focus:outline-none font-medium" /></td>
+                      <td class="py-1.5 px-1 text-left"><input v-model="row.name" @change="saveData" class="w-full bg-transparent text-left focus:outline-none font-medium" /></td>
                       <td class="py-1.5 px-1"><input v-model.number="row.count" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-center rounded py-0.5 focus:outline-none" /></td>
-                      <td class="py-1.5 px-1"><input v-model.number="row.price" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-right rounded py-0.5 focus:outline-none" /></td>
-                      <td class="py-1.5 px-1 text-right font-semibold text-amber-600">{{ ((row.count || 0) * (row.price || 0)) }}</td>
-                      <td class="py-1.5 px-1"><input v-model="row.note" @change="saveData" class="w-full bg-transparent text-slate-400 focus:outline-none text-[11px]" placeholder="備註" /></td>
+                      <td class="py-1.5 px-1"><input v-model.number="row.price" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-center rounded py-0.5 focus:outline-none" /></td>
+                      <td class="py-1.5 px-1 text-center font-semibold text-amber-600">{{ getRowTotal(row) }}</td>
+                      <td class="py-1.5 px-1"><input v-model="row.note" @change="saveData" class="w-full bg-transparent text-center text-slate-400 focus:outline-none text-[11px]" placeholder="備註" /></td>
                       <td class="py-1.5 px-1 text-center"><button @click="removeRow(sheet, rIndex)" class="text-slate-300 hover:text-red-400"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></td>
                     </tr>
                   </tbody>
@@ -461,20 +412,39 @@
               </div>
             </div>
 
-            <!-- 最終淨額卡片 -->
+            <!-- 總結算卡片 1：應付總結算卡片 (應付款項 - 應付訂金) -->
+            <div class="bg-gradient-to-br from-amber-600 to-amber-800 text-white rounded-3xl p-5 shadow-lg border border-amber-500">
+              <h3 class="text-sm font-bold border-b border-amber-400/50 pb-2 mb-3">
+                {{ currentTabInfo.name }}總結算金額 (應付)
+              </h3>
+              
+              <div class="space-y-1.5 text-xs opacity-90 mb-3">
+                <div class="flex justify-between">
+                  <span>應付款項：</span>
+                  <span>$ {{ getGeneralPayableTotal(activeTrip).toLocaleString() }}</span>
+                </div>
+                <div class="flex justify-between text-amber-100">
+                  <span>應付訂金：</span>
+                  <span>- $ {{ getPayableDepositTotal(activeTrip).toLocaleString() }}</span>
+                </div>
+              </div>
+
+              <div class="pt-2 border-t border-amber-400/50 flex justify-between items-center">
+                <span class="font-bold text-sm">應付最終總額</span>
+                <span class="text-2xl font-black text-amber-200">$ {{ calculateTripPayableTotal(activeTrip).toLocaleString() }}</span>
+              </div>
+            </div>
+
+            <!-- 總結算卡片 2：最終淨利卡片 (應收總額 - 應付款項) -->
             <div class="bg-slate-800 text-white rounded-3xl p-5 shadow-xl border border-slate-700">
-              <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">最終收支淨額 (應收總額 - 應付訂金 - 應付款項)</h3>
+              <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">最終收支淨額 (應收總額 - 應付款項)</h3>
               <div class="space-y-1.5 text-xs text-slate-300 mb-3">
                 <div class="flex justify-between">
-                  <span>1. 應收總額：</span>
+                  <span>應收總額：</span>
                   <span class="font-semibold text-white">$ {{ getGrossReceivableTotal(activeTrip).toLocaleString() }}</span>
                 </div>
                 <div class="flex justify-between text-amber-300">
-                  <span>2. 應付訂金：</span>
-                  <span class="font-semibold">- $ {{ getPayableDepositTotal(activeTrip).toLocaleString() }}</span>
-                </div>
-                <div class="flex justify-between text-amber-300">
-                  <span>3. 應付款項：</span>
+                  <span>應付款項：</span>
                   <span class="font-semibold">- $ {{ getGeneralPayableTotal(activeTrip).toLocaleString() }}</span>
                 </div>
               </div>
@@ -496,11 +466,11 @@
         <h3 class="font-bold text-ocean-900 text-base text-center">新增每月總結月份</h3>
         <div class="flex gap-2">
           <div class="flex-1 flex flex-col gap-1">
-            <label class="text-[11px] text-slate-400 font-medium">年份</label>
+            <label class="text-[11px] text-slate-400 font-medium text-center">年份</label>
             <input v-model.number="newMonthYear" type="number" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-center text-sm font-bold text-slate-700 focus:outline-none focus:border-ocean-500" />
           </div>
           <div class="flex-1 flex flex-col gap-1">
-            <label class="text-[11px] text-slate-400 font-medium">月份</label>
+            <label class="text-[11px] text-slate-400 font-medium text-center">月份</label>
             <select v-model.number="newMonthValue" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-center text-sm font-bold text-slate-700 focus:outline-none focus:border-ocean-500">
               <option v-for="m in 12" :key="m" :value="m">{{ m }} 月</option>
             </select>
@@ -544,7 +514,7 @@
         const newMonthYear = ref(new Date().getFullYear());
         const newMonthValue = ref(new Date().getMonth() + 1);
 
-        // --- 舊有的預設資料（供上課、Fun Dive、散客使用） ---
+        // --- 預設資料項 ---
         const legacyReceivableRows = [
           { name: '雙人房', count: 0, price: 2200, note: '' },
           { name: '三人房', count: 0, price: 3000, note: '' },
@@ -565,8 +535,10 @@
         ];
 
         const legacyDepositRows = [
-          { name: '住宿', total: 0, note: '' },
-          { name: '上課', total: 0, note: '' }
+          { name: '住宿', count: 0, price: 1000, note: '' },
+          { name: '船費', count: 0, price: 1000, note: '' },
+          { name: '船票', count: 0, price: 0, note: '' },
+          { name: '教材', count: 0, price: 0, note: '' }
         ];
 
         const legacyPayableRows = [
@@ -579,6 +551,8 @@
           { name: '六人房(平)', count: 0, price: 3200, note: '' },
           { name: '六人房(假)', count: 0, price: 4000, note: '' },
           { name: '背包房', count: 0, price: 600, note: '' },
+          { name: '機車', count: 0, price: 300, note: '' },
+          { name: '船票', count: 0, price: 0, note: '' },
           { name: 'ow教材', count: 0, price: 2400, note: '' },
           { name: 'aow教材', count: 0, price: 2600, note: '' },
           { name: '高氧教材', count: 0, price: 1950, note: '' },
@@ -592,18 +566,19 @@
         ];
 
         const payableDepositRows = [
-          { name: '住宿', total: 0, note: '' },
-          { name: '上課', total: 0, note: '' }
+          { name: '住宿', count: 0, price: 1000, note: '' },
+          { name: '船費', count: 0, price: 1000, note: '' },
+          { name: '船票', count: 0, price: 0, note: '' },
+          { name: '教材', count: 0, price: 0, note: '' }
         ];
 
         const createLegacySheets = () => [
-          { id: 's_' + Date.now() + '_1', name: '應收款項', type: 'receivable', qtyLabel: '數量', rows: JSON.parse(JSON.stringify(legacyReceivableRows)) },
-          { id: 's_' + Date.now() + '_2', name: '訂金', type: 'deposit', rows: JSON.parse(JSON.stringify(legacyDepositRows)) },
+          { id: 's_' + Date.now() + '_1', name: '應收款項', type: 'receivable', rows: JSON.parse(JSON.stringify(legacyReceivableRows)) },
+          { id: 's_' + Date.now() + '_2', name: '應收訂金', type: 'deposit', rows: JSON.parse(JSON.stringify(legacyDepositRows)) },
           { id: 's_' + Date.now() + '_pd', name: '應付訂金', type: 'payable_deposit', rows: JSON.parse(JSON.stringify(payableDepositRows)) },
           { id: 's_' + Date.now() + '_3', name: '應付款項', type: 'payable', rows: JSON.parse(JSON.stringify(legacyPayableRows)) }
         ];
 
-        // --- 潛團專用預設資料 ---
         const groupAccommRows = [
           { name: '雙人房 (平)', count: 0, price: 1800, note: '' },
           { name: '雙人房 (假)', count: 0, price: 2100, note: '' },
@@ -637,12 +612,14 @@
         ];
 
         const groupInsuranceRows = [
-          { startDate: '', endDate: '', days: 0, people: 0, price: 50 }
+          { date: '', people: 1, price: 50 }
         ];
 
         const groupDepositRows = [
-          { name: '住宿', total: 0, note: '' },
-          { name: '船費', total: 0, note: '' }
+          { name: '住宿', count: 0, price: 1000, note: '' },
+          { name: '船費', count: 0, price: 1000, note: '' },
+          { name: '船票', count: 0, price: 0, note: '' },
+          { name: '教材', count: 0, price: 0, note: '' }
         ];
 
         const groupPayableRows = [
@@ -655,6 +632,8 @@
           { name: '六人房(平)', count: 0, price: 3200, note: '' },
           { name: '六人房(假)', count: 0, price: 4000, note: '' },
           { name: '背包房', count: 0, price: 600, note: '' },
+          { name: '機車', count: 0, price: 300, note: '' },
+          { name: '船票', count: 0, price: 0, note: '' },
           { name: 'ow教材', count: 0, price: 2400, note: '' },
           { name: 'aow教材', count: 0, price: 2600, note: '' },
           { name: '高氧教材', count: 0, price: 1950, note: '' },
@@ -667,10 +646,10 @@
         ];
 
         const createGroupSheets = () => [
-          { id: 's_' + Date.now() + '_g1', name: '住宿&交通&其他', type: 'receivable', qtyLabel: '數量', rows: JSON.parse(JSON.stringify(groupAccommRows)) },
-          { id: 's_' + Date.now() + '_g2', name: '潛水', type: 'receivable', qtyLabel: '數量/天數', hasCheckbox: true, checkboxLabel: '教材已付', checkboxVal: false, rows: JSON.parse(JSON.stringify(groupDivingRows)) },
+          { id: 's_' + Date.now() + '_g1', name: '住宿&交通&其他', type: 'receivable', rows: JSON.parse(JSON.stringify(groupAccommRows)) },
+          { id: 's_' + Date.now() + '_g2', name: '潛水', type: 'receivable', hasCheckbox: true, checkboxLabel: '教材已付', checkboxVal: false, rows: JSON.parse(JSON.stringify(groupDivingRows)) },
           { id: 's_' + Date.now() + '_g3', name: '全團保險', type: 'insurance', rows: JSON.parse(JSON.stringify(groupInsuranceRows)) },
-          { id: 's_' + Date.now() + '_g4', name: '訂金', type: 'deposit', rows: JSON.parse(JSON.stringify(groupDepositRows)) },
+          { id: 's_' + Date.now() + '_g4', name: '應收訂金', type: 'deposit', rows: JSON.parse(JSON.stringify(groupDepositRows)) },
           { id: 's_' + Date.now() + '_gpd', name: '應付訂金', type: 'payable_deposit', rows: JSON.parse(JSON.stringify(payableDepositRows)) },
           { id: 's_' + Date.now() + '_g5', name: '應付款項', type: 'payable', rows: JSON.parse(JSON.stringify(groupPayableRows)) }
         ];
@@ -693,11 +672,41 @@
 
         const tripsData = ref(defaultTripsData);
 
+        const formatDateShort = (dateStr) => {
+          if (!dateStr) return '';
+          const d = new Date(dateStr);
+          if (isNaN(d.getTime())) return '';
+          return `${d.getMonth() + 1}/${d.getDate()}`;
+        };
+
+        const migrateSheetRows = (sheets) => {
+          if (!sheets) return;
+          sheets.forEach(sheet => {
+            if (sheet.qtyLabel) delete sheet.qtyLabel;
+            if (sheet.type === 'insurance') {
+              sheet.rows.forEach(r => {
+                if (r.days !== undefined) delete r.days;
+                if (r.startDate !== undefined) {
+                  r.date = r.startDate;
+                  delete r.startDate;
+                  delete r.endDate;
+                }
+              });
+            }
+          });
+        };
+
         onMounted(() => {
-          const savedData = localStorage.getItem('ocean_accounting_trips_data_v14');
+          const savedData = localStorage.getItem('ocean_accounting_trips_data_v18');
           if (savedData) {
             try {
-              tripsData.value = JSON.parse(savedData);
+              const parsed = JSON.parse(savedData);
+              ['group', 'class', 'fundive', 'try'].forEach(cat => {
+                if (parsed[cat]) {
+                  parsed[cat].forEach(trip => migrateSheetRows(trip.sheets));
+                }
+              });
+              tripsData.value = parsed;
             } catch (e) {
               console.error('資料讀取失敗，使用預設值', e);
             }
@@ -709,7 +718,7 @@
         });
 
         const saveData = () => {
-          localStorage.setItem('ocean_accounting_trips_data_v14', JSON.stringify(tripsData.value));
+          localStorage.setItem('ocean_accounting_trips_data_v18', JSON.stringify(tripsData.value));
         };
 
         const exportData = () => {
@@ -730,6 +739,11 @@
             try {
               const imported = JSON.parse(e.target.result);
               if (confirm('匯入備份將覆蓋當前資料，確定要繼續嗎？')) {
+                ['group', 'class', 'fundive', 'try'].forEach(cat => {
+                  if (imported[cat]) {
+                    imported[cat].forEach(trip => migrateSheetRows(trip.sheets));
+                  }
+                });
                 tripsData.value = imported;
                 saveData();
                 alert('備份資料匯入成功！');
@@ -823,10 +837,8 @@
         };
 
         const addRow = (sheet) => {
-          if (sheet.type === 'deposit' || sheet.type === 'payable_deposit') {
-            sheet.rows.push({ name: '新品項', total: 0, note: '' });
-          } else if (sheet.type === 'insurance') {
-            sheet.rows.push({ startDate: '', endDate: '', days: 0, people: 0, price: 50 });
+          if (sheet.type === 'insurance') {
+            sheet.rows.push({ date: '', people: 1, price: 50 });
           } else {
             sheet.rows.push({ name: '新品項', count: 0, price: 0, note: '' });
           }
@@ -839,18 +851,23 @@
           saveData();
         };
 
+        const getRowTotal = (row) => {
+          if (row.count !== undefined && row.price !== undefined) {
+            return (row.count || 0) * (row.price || 0);
+          }
+          if (row.total !== undefined) return row.total || 0;
+          return 0;
+        };
+
         const calculateSheetTotal = (sheet) => {
           if (!sheet || !sheet.rows) return 0;
-          if (sheet.type === 'deposit' || sheet.type === 'payable_deposit') {
-            return sheet.rows.reduce((sum, r) => sum + (parseFloat(r.total) || 0), 0);
-          } else if (sheet.type === 'insurance') {
-            return sheet.rows.reduce((sum, r) => sum + ((r.days || 0) * (r.people || 0) * (r.price || 0)), 0);
+          if (sheet.type === 'insurance') {
+            return sheet.rows.reduce((sum, r) => sum + ((r.people || 0) * (r.price || 0)), 0);
           } else {
-            return sheet.rows.reduce((sum, r) => sum + ((r.count || 0) * (r.price || 0)), 0);
+            return sheet.rows.reduce((sum, r) => sum + getRowTotal(r), 0);
           }
         };
 
-        // 取得「原始應收總額」（不含訂金）
         const getGrossReceivableTotal = (trip) => {
           if (!trip || !trip.sheets) return 0;
           return trip.sheets
@@ -858,7 +875,6 @@
             .reduce((sum, s) => sum + calculateSheetTotal(s), 0);
         };
 
-        // 取得「應收訂金」總額
         const getReceivableDepositTotal = (trip) => {
           if (!trip || !trip.sheets) return 0;
           return trip.sheets
@@ -866,7 +882,6 @@
             .reduce((sum, s) => sum + calculateSheetTotal(s), 0);
         };
 
-        // 取得「應付訂金」總額
         const getPayableDepositTotal = (trip) => {
           if (!trip || !trip.sheets) return 0;
           return trip.sheets
@@ -874,7 +889,6 @@
             .reduce((sum, s) => sum + calculateSheetTotal(s), 0);
         };
 
-        // 取得「一般應付款項」總額
         const getGeneralPayableTotal = (trip) => {
           if (!trip || !trip.sheets) return 0;
           return trip.sheets
@@ -882,17 +896,18 @@
             .reduce((sum, s) => sum + calculateSheetTotal(s), 0);
         };
 
-        // 應收最終總額 = 應收總額 - 應收訂金
         const calculateTripReceivableTotal = (trip) => {
           return getGrossReceivableTotal(trip) - getReceivableDepositTotal(trip);
         };
 
-        // 最終淨利 = 應收總額 - 應付訂金 - 應付款項
-        const calculateTripFinalNetTotal = (trip) => {
-          return getGrossReceivableTotal(trip) - getPayableDepositTotal(trip) - getGeneralPayableTotal(trip);
+        const calculateTripPayableTotal = (trip) => {
+          return getGeneralPayableTotal(trip) - getPayableDepositTotal(trip);
         };
 
-        // 每月總結的應收計算改為各單項的「應收總額」加總
+        const calculateTripFinalNetTotal = (trip) => {
+          return getGrossReceivableTotal(trip) - getGeneralPayableTotal(trip);
+        };
+
         const getMonthlyTotals = (year, month) => {
           let receivable = 0, payable = 0;
           ['group', 'class', 'fundive', 'try'].forEach(cat => {
@@ -901,7 +916,7 @@
                 const d = new Date(trip.startDate);
                 if (!isNaN(d.getTime()) && d.getFullYear() === year && (d.getMonth() + 1) === month) {
                   receivable += getGrossReceivableTotal(trip);
-                  payable += (getPayableDepositTotal(trip) + getGeneralPayableTotal(trip));
+                  payable += getGeneralPayableTotal(trip);
                 }
               }
             });
@@ -947,10 +962,10 @@
         return {
           mainTabs, currentMainTab, activeTripId, tripsData, currentTrips, summaryData, sortedSummaryYears,
           currentTabInfo, activeTrip, activeReceivableSheets, activePayableSheets, showAddMonthModal,
-          newMonthYear, newMonthValue, saveData, exportData, importData, updateTripDateRange, createNewTripGroup,
-          deleteTrip, deleteSheetBySheet, addRow, removeRow, calculateSheetTotal, getGrossReceivableTotal,
+          newMonthYear, newMonthValue, formatDateShort, saveData, exportData, importData, updateTripDateRange, createNewTripGroup,
+          deleteTrip, deleteSheetBySheet, addRow, removeRow, getRowTotal, calculateSheetTotal, getGrossReceivableTotal,
           getReceivableDepositTotal, getPayableDepositTotal, getGeneralPayableTotal, calculateTripReceivableTotal,
-          calculateTripFinalNetTotal, getMonthlyTotals, calculateYearlyNetTotal, confirmAddMonth, removeSummaryMonth
+          calculateTripPayableTotal, calculateTripFinalNetTotal, getMonthlyTotals, calculateYearlyNetTotal, confirmAddMonth, removeSummaryMonth
         };
       }
     }).mount('#app');
