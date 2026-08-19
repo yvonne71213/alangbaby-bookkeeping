@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="Ocean Accounting">
   <title>Ocean Accounting App</title>
 
-  <!-- PWA Web App Manifest (Data URL 格式免額外外連檔) -->
+  <!-- PWA Web App Manifest -->
   <link rel="manifest" href='data:application/manifest+json,{
     "name": "Ocean Accounting App",
     "short_name": "海洋記帳",
@@ -261,12 +261,13 @@
                 </button>
               </div>
 
+              <!-- 標準數量/單價表格 -->
               <div v-if="sheet.type === 'receivable'" class="overflow-x-auto">
                 <table class="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr class="text-slate-400 border-b border-slate-100">
                       <th class="py-1.5 px-1 font-medium">品項</th>
-                      <th class="py-1.5 px-1 font-medium w-12 text-center">數量</th>
+                      <th class="py-1.5 px-1 font-medium w-16 text-center">{{ sheet.qtyLabel || '數量' }}</th>
                       <th class="py-1.5 px-1 font-medium w-16 text-right">單價</th>
                       <th class="py-1.5 px-1 font-medium w-16 text-right">合計</th>
                       <th class="py-1.5 px-1 font-medium">備註</th>
@@ -284,12 +285,124 @@
                     </tr>
                   </tbody>
                 </table>
+                
+                <div class="flex justify-between items-center mt-2">
+                  <button @click="addRow(sheet)" class="text-xs text-ocean-500 hover:text-ocean-700 flex items-center gap-1 font-medium">
+                    <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> 新增品項
+                  </button>
+                  <label v-if="sheet.hasCheckbox" class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer font-medium">
+                    <input type="checkbox" v-model="sheet.checkboxVal" @change="saveData" class="rounded text-ocean-500 focus:ring-ocean-500 w-4 h-4" />
+                    <span>{{ sheet.checkboxLabel }}</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 全團保險表格 (特殊多欄位) -->
+              <div v-else-if="sheet.type === 'insurance'" class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr class="text-slate-400 border-b border-slate-100">
+                      <th class="py-1.5 px-1 font-medium">日期區間</th>
+                      <th class="py-1.5 px-1 font-medium w-10 text-center">天數</th>
+                      <th class="py-1.5 px-1 font-medium w-10 text-center">人數</th>
+                      <th class="py-1.5 px-1 font-medium w-12 text-right">單價</th>
+                      <th class="py-1.5 px-1 font-medium w-12 text-right">合計</th>
+                      <th class="w-6"></th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-50">
+                    <tr v-for="(row, rIndex) in sheet.rows" :key="rIndex">
+                      <td class="py-1.5 px-1 flex items-center gap-0.5">
+                        <input type="date" v-model="row.startDate" @change="saveData" class="w-16 bg-slate-50 text-[10px] rounded p-0.5" />
+                        <span>-</span>
+                        <input type="date" v-model="row.endDate" @change="saveData" class="w-16 bg-slate-50 text-[10px] rounded p-0.5" />
+                      </td>
+                      <td class="py-1.5 px-1"><input v-model.number="row.days" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-center rounded py-0.5 focus:outline-none" /></td>
+                      <td class="py-1.5 px-1"><input v-model.number="row.people" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-center rounded py-0.5 focus:outline-none" /></td>
+                      <td class="py-1.5 px-1"><input v-model.number="row.price" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-right rounded py-0.5 focus:outline-none" /></td>
+                      <td class="py-1.5 px-1 text-right font-semibold text-ocean-700">{{ ((row.days || 0) * (row.people || 0) * (row.price || 0)) }}</td>
+                      <td class="py-1.5 px-1 text-center"><button @click="removeRow(sheet, rIndex)" class="text-slate-300 hover:text-red-400"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></td>
+                    </tr>
+                  </tbody>
+                </table>
                 <button @click="addRow(sheet)" class="mt-2 text-xs text-ocean-500 hover:text-ocean-700 flex items-center gap-1 font-medium">
-                  <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> 新增品項
+                  <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> 新增保險明細
                 </button>
               </div>
 
+              <!-- 應收訂金表格 -->
               <div v-else-if="sheet.type === 'deposit'">
+                <table class="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr class="text-slate-400 border-b border-slate-100">
+                      <th class="py-1.5 px-1 font-medium">品項</th>
+                      <th class="py-1.5 px-1 font-medium w-24 text-right">合計</th>
+                      <th class="py-1.5 px-1 font-medium">備註</th>
+                      <th class="w-6"></th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-50">
+                    <tr v-for="(row, rIndex) in sheet.rows" :key="rIndex">
+                      <td class="py-1.5 px-1"><input v-model="row.name" @change="saveData" class="w-full bg-transparent focus:outline-none font-medium" /></td>
+                      <td class="py-1.5 px-1"><input v-model.number="row.total" @change="saveData" type="number" min="0" class="w-full bg-slate-50 text-right rounded py-0.5 focus:outline-none font-semibold text-ocean-700" /></td>
+                      <td class="py-1.5 px-1"><input v-model="row.note" @change="saveData" class="w-full bg-transparent text-slate-400 focus:outline-none text-[11px]" placeholder="備註" /></td>
+                      <td class="py-1.5 px-1 text-center"><button @click="removeRow(sheet, rIndex)" class="text-slate-300 hover:text-red-400"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></td>
+                    </tr>
+                  </tbody>
+                </table>
+                <button @click="addRow(sheet)" class="mt-2 text-xs text-ocean-500 hover:text-ocean-700 flex items-center gap-1 font-medium">
+                  <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> 新增訂金項目
+                </button>
+              </div>
+
+              <div class="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center text-xs">
+                <span class="text-slate-400 font-medium">{{ sheet.name }} 小計</span>
+                <span class="font-bold text-ocean-900">$ {{ calculateSheetTotal(sheet).toLocaleString() }}</span>
+              </div>
+            </div>
+
+            <!-- 總結算卡片 (應收) -->
+            <div class="bg-gradient-to-br from-ocean-700 to-ocean-900 text-white rounded-3xl p-5 shadow-lg border border-ocean-500">
+              <h3 class="text-sm font-bold border-b border-ocean-500/50 pb-2 mb-3">
+                {{ currentTabInfo.name }}總結算金額 (應收)
+              </h3>
+              
+              <div class="space-y-1.5 text-xs opacity-90 mb-3">
+                <div class="flex justify-between">
+                  <span>應收總額：</span>
+                  <span>$ {{ getGrossReceivableTotal(activeTrip).toLocaleString() }}</span>
+                </div>
+                <div class="flex justify-between text-coral-100">
+                  <span>應收訂金：</span>
+                  <span>- $ {{ getReceivableDepositTotal(activeTrip).toLocaleString() }}</span>
+                </div>
+              </div>
+
+              <div class="pt-2 border-t border-ocean-500/50 flex justify-between items-center">
+                <span class="font-bold text-sm">應收最終總額</span>
+                <span class="text-2xl font-black text-sand">$ {{ calculateTripReceivableTotal(activeTrip).toLocaleString() }}</span>
+              </div>
+            </div>
+
+            <!-- 應付款項區域 (包含應付訂金 + 應付款項) -->
+            <div v-for="sheet in activePayableSheets" :key="sheet.id" class="bg-white/90 backdrop-blur-sm rounded-3xl p-4 shadow-sm border border-amber-200/60">
+              <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                  <input 
+                    v-model="sheet.name" 
+                    @change="saveData"
+                    type="text" 
+                    class="font-bold text-slate-800 bg-transparent focus:outline-none text-sm"
+                  />
+                </div>
+                <button @click="deleteSheetBySheet(sheet)" class="text-slate-300 hover:text-red-400 p-1" title="刪除此表單">
+                  <i data-lucide="x-circle" class="w-4 h-4"></i>
+                </button>
+              </div>
+
+              <!-- 應付訂金表格結構 -->
+              <div v-if="sheet.type === 'payable_deposit'">
                 <table class="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr class="text-slate-400 border-b border-slate-100">
@@ -308,56 +421,13 @@
                     </tr>
                   </tbody>
                 </table>
-                <button @click="addRow(sheet)" class="mt-2 text-xs text-ocean-500 hover:text-ocean-700 flex items-center gap-1 font-medium">
+                <button @click="addRow(sheet)" class="mt-2 text-xs text-amber-600 hover:text-amber-700 flex items-center gap-1 font-medium">
                   <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> 新增訂金項目
                 </button>
               </div>
 
-              <div class="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center text-xs">
-                <span class="text-slate-400 font-medium">{{ sheet.name }} 小計</span>
-                <span class="font-bold text-ocean-900">$ {{ calculateSheetTotal(sheet).toLocaleString() }}</span>
-              </div>
-            </div>
-
-            <!-- 總結算卡片 -->
-            <div class="bg-gradient-to-br from-ocean-700 to-ocean-900 text-white rounded-3xl p-5 shadow-lg border border-ocean-500">
-              <h3 class="text-sm font-bold border-b border-ocean-500/50 pb-2 mb-3">
-                {{ currentTabInfo.name }}總結算金額 (應收)
-              </h3>
-              
-              <div class="space-y-1.5 text-xs opacity-90 mb-3">
-                <div v-for="s in activeReceivableSheets" :key="s.id" class="flex justify-between">
-                  <span>{{ s.name }}：</span>
-                  <span :class="s.type === 'deposit' ? 'text-coral-100' : ''">
-                    {{ s.type === 'deposit' ? '-' : '+' }} $ {{ calculateSheetTotal(s).toLocaleString() }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="pt-2 border-t border-ocean-500/50 flex justify-between items-center">
-                <span class="font-bold text-sm">應收最終總額</span>
-                <span class="text-2xl font-black text-sand">$ {{ calculateTripReceivableTotal(activeTrip).toLocaleString() }}</span>
-              </div>
-            </div>
-
-            <!-- 應付款項表格 -->
-            <div v-for="sheet in activePayableSheets" :key="sheet.id" class="bg-white/90 backdrop-blur-sm rounded-3xl p-4 shadow-sm border border-amber-200/60">
-              <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
-                <div class="flex items-center gap-2">
-                  <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                  <input 
-                    v-model="sheet.name" 
-                    @change="saveData"
-                    type="text" 
-                    class="font-bold text-slate-800 bg-transparent focus:outline-none text-sm"
-                  />
-                </div>
-                <button @click="deleteSheetBySheet(sheet)" class="text-slate-300 hover:text-red-400 p-1" title="刪除此表單">
-                  <i data-lucide="x-circle" class="w-4 h-4"></i>
-                </button>
-              </div>
-
-              <div class="overflow-x-auto">
+              <!-- 一般應付款項表格結構 -->
+              <div v-else class="overflow-x-auto">
                 <table class="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr class="text-slate-400 border-b border-slate-100">
@@ -386,22 +456,26 @@
               </div>
 
               <div class="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center text-xs">
-                <span class="text-slate-400 font-medium">{{ sheet.name }} 總額</span>
+                <span class="text-slate-400 font-medium">{{ sheet.name }} 小計</span>
                 <span class="font-bold text-amber-600">$ {{ calculateSheetTotal(sheet).toLocaleString() }}</span>
               </div>
             </div>
 
             <!-- 最終淨額卡片 -->
             <div class="bg-slate-800 text-white rounded-3xl p-5 shadow-xl border border-slate-700">
-              <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">最終收支淨額 (應收總額 - 應付總額)</h3>
+              <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">最終收支淨額 (應收總額 - 應付訂金 - 應付款項)</h3>
               <div class="space-y-1.5 text-xs text-slate-300 mb-3">
                 <div class="flex justify-between">
-                  <span>1. 應收最終總額：</span>
-                  <span class="font-semibold text-white">$ {{ calculateTripReceivableTotal(activeTrip).toLocaleString() }}</span>
+                  <span>1. 應收總額：</span>
+                  <span class="font-semibold text-white">$ {{ getGrossReceivableTotal(activeTrip).toLocaleString() }}</span>
                 </div>
                 <div class="flex justify-between text-amber-300">
-                  <span>2. 應付款項總額：</span>
-                  <span class="font-semibold">- $ {{ getPayableTotal(activeTrip).toLocaleString() }}</span>
+                  <span>2. 應付訂金：</span>
+                  <span class="font-semibold">- $ {{ getPayableDepositTotal(activeTrip).toLocaleString() }}</span>
+                </div>
+                <div class="flex justify-between text-amber-300">
+                  <span>3. 應付款項：</span>
+                  <span class="font-semibold">- $ {{ getGeneralPayableTotal(activeTrip).toLocaleString() }}</span>
                 </div>
               </div>
               <div class="pt-2 border-t border-slate-700 flex justify-between items-center">
@@ -470,7 +544,8 @@
         const newMonthYear = ref(new Date().getFullYear());
         const newMonthValue = ref(new Date().getMonth() + 1);
 
-        const defaultReceivableRows = [
+        // --- 舊有的預設資料（供上課、Fun Dive、散客使用） ---
+        const legacyReceivableRows = [
           { name: '雙人房', count: 0, price: 2200, note: '' },
           { name: '三人房', count: 0, price: 3000, note: '' },
           { name: '四人房', count: 0, price: 3600, note: '' },
@@ -489,13 +564,12 @@
           { name: '體驗', count: 0, price: 2300, note: '' }
         ];
 
-        const defaultDepositRows = [
+        const legacyDepositRows = [
           { name: '住宿', total: 0, note: '' },
           { name: '上課', total: 0, note: '' }
         ];
 
-        const defaultPayableRows = [
-          { name: '訂金', count: 0, price: 0, note: '' },
+        const legacyPayableRows = [
           { name: '雙人房(平)', count: 0, price: 1500, note: '' },
           { name: '雙人房(假)', count: 0, price: 1900, note: '' },
           { name: '三人房(平)', count: 0, price: 2000, note: '' },
@@ -512,22 +586,100 @@
           { name: '氣瓶(微風)', count: 0, price: 150, note: '' },
           { name: '船費(3以下)', count: 0, price: 1200, note: '' },
           { name: '船費(3以上)', count: 0, price: 1000, note: '' },
-          { name: '氣瓶(船隻)', count: 0, price: 150, note: '' },
+          { name: '氣瓶(海鷹)', count: 0, price: 150, note: '' },
           { name: '保險', count: 0, price: 50, note: '' },
           { name: '教練費', count: 0, price: 3000, note: '' }
         ];
 
-        const createStandardSheets = () => [
-          { id: 's_' + Date.now() + '_1', name: '應收款項', type: 'receivable', rows: JSON.parse(JSON.stringify(defaultReceivableRows)) },
-          { id: 's_' + Date.now() + '_2', name: '訂金', type: 'deposit', rows: JSON.parse(JSON.stringify(defaultDepositRows)) },
-          { id: 's_' + Date.now() + '_3', name: '應付款項', type: 'payable', rows: JSON.parse(JSON.stringify(defaultPayableRows)) }
+        const payableDepositRows = [
+          { name: '住宿', total: 0, note: '' },
+          { name: '上課', total: 0, note: '' }
+        ];
+
+        const createLegacySheets = () => [
+          { id: 's_' + Date.now() + '_1', name: '應收款項', type: 'receivable', qtyLabel: '數量', rows: JSON.parse(JSON.stringify(legacyReceivableRows)) },
+          { id: 's_' + Date.now() + '_2', name: '訂金', type: 'deposit', rows: JSON.parse(JSON.stringify(legacyDepositRows)) },
+          { id: 's_' + Date.now() + '_pd', name: '應付訂金', type: 'payable_deposit', rows: JSON.parse(JSON.stringify(payableDepositRows)) },
+          { id: 's_' + Date.now() + '_3', name: '應付款項', type: 'payable', rows: JSON.parse(JSON.stringify(legacyPayableRows)) }
+        ];
+
+        // --- 潛團專用預設資料 ---
+        const groupAccommRows = [
+          { name: '雙人房 (平)', count: 0, price: 1800, note: '' },
+          { name: '雙人房 (假)', count: 0, price: 2100, note: '' },
+          { name: '三人房 (平)', count: 0, price: 2300, note: '' },
+          { name: '三人房 (假)', count: 0, price: 2700, note: '' },
+          { name: '四人房 (平)', count: 0, price: 2700, note: '' },
+          { name: '四人房 (假)', count: 0, price: 3300, note: '' },
+          { name: '六人房 (平)', count: 0, price: 3500, note: '' },
+          { name: '六人房 (假)', count: 0, price: 4200, note: '' },
+          { name: '背包房', count: 0, price: 700, note: '' },
+          { name: '機車', count: 0, price: 300, note: '' },
+          { name: '船票', count: 0, price: 950, note: '' },
+          { name: '便當', count: 0, price: 130, note: '' }
+        ];
+
+        const groupDivingRows = [
+          { name: '岸潛導潛', count: 0, price: 1350, note: '' },
+          { name: '船潛', count: 0, price: 1750, note: '' },
+          { name: '氣瓶', count: 0, price: 200, note: '' },
+          { name: 'BCD', count: 0, price: 300, note: '' },
+          { name: '調節器', count: 0, price: 300, note: '' },
+          { name: '輕裝', count: 0, price: 100, note: '' },
+          { name: '包船船費', count: 0, price: 15000, note: '' },
+          { name: '包船導潛', count: 0, price: 2700, note: '' },
+          { name: '包船氣瓶', count: 0, price: 150, note: '' },
+          { name: 'ow教材', count: 0, price: 2400, note: '' },
+          { name: 'aow教材', count: 0, price: 2600, note: '' },
+          { name: '高氧教材', count: 0, price: 1950, note: '' },
+          { name: '教練費', count: 0, price: 1000, note: '' },
+          { name: '水面餐', count: 0, price: 120, note: '' }
+        ];
+
+        const groupInsuranceRows = [
+          { startDate: '', endDate: '', days: 0, people: 0, price: 50 }
+        ];
+
+        const groupDepositRows = [
+          { name: '住宿', total: 0, note: '' },
+          { name: '船費', total: 0, note: '' }
+        ];
+
+        const groupPayableRows = [
+          { name: '雙人房(平)', count: 0, price: 1500, note: '' },
+          { name: '雙人房(假)', count: 0, price: 1900, note: '' },
+          { name: '三人房(平)', count: 0, price: 2000, note: '' },
+          { name: '三人房(假)', count: 0, price: 2500, note: '' },
+          { name: '四人房(平)', count: 0, price: 2400, note: '' },
+          { name: '四人房(假)', count: 0, price: 3100, note: '' },
+          { name: '六人房(平)', count: 0, price: 3200, note: '' },
+          { name: '六人房(假)', count: 0, price: 4000, note: '' },
+          { name: '背包房', count: 0, price: 600, note: '' },
+          { name: 'ow教材', count: 0, price: 2400, note: '' },
+          { name: 'aow教材', count: 0, price: 2600, note: '' },
+          { name: '高氧教材', count: 0, price: 1950, note: '' },
+          { name: '裝備', count: 0, price: 500, note: '' },
+          { name: '氣瓶(微風)', count: 0, price: 150, note: '' },
+          { name: '船費', count: 0, price: 1000, note: '' },
+          { name: '氣瓶(海鷹)', count: 0, price: 150, note: '' },
+          { name: '包船', count: 0, price: 0, note: '' },
+          { name: '保險', count: 0, price: 50, note: '' }
+        ];
+
+        const createGroupSheets = () => [
+          { id: 's_' + Date.now() + '_g1', name: '住宿&交通&其他', type: 'receivable', qtyLabel: '數量', rows: JSON.parse(JSON.stringify(groupAccommRows)) },
+          { id: 's_' + Date.now() + '_g2', name: '潛水', type: 'receivable', qtyLabel: '數量/天數', hasCheckbox: true, checkboxLabel: '教材已付', checkboxVal: false, rows: JSON.parse(JSON.stringify(groupDivingRows)) },
+          { id: 's_' + Date.now() + '_g3', name: '全團保險', type: 'insurance', rows: JSON.parse(JSON.stringify(groupInsuranceRows)) },
+          { id: 's_' + Date.now() + '_g4', name: '訂金', type: 'deposit', rows: JSON.parse(JSON.stringify(groupDepositRows)) },
+          { id: 's_' + Date.now() + '_gpd', name: '應付訂金', type: 'payable_deposit', rows: JSON.parse(JSON.stringify(payableDepositRows)) },
+          { id: 's_' + Date.now() + '_g5', name: '應付款項', type: 'payable', rows: JSON.parse(JSON.stringify(groupPayableRows)) }
         ];
 
         const defaultTripsData = {
-          group: [{ id: 'trip_1', title: '潛團', startDate: '', endDate: '', dateRange: '', sheets: createStandardSheets() }],
-          class: [{ id: 'trip_2', title: '上課', startDate: '', endDate: '', dateRange: '', sheets: createStandardSheets() }],
-          fundive: [{ id: 'trip_3', title: 'Fun Dive', startDate: '', endDate: '', dateRange: '', sheets: createStandardSheets() }],
-          try: [{ id: 'trip_4', title: '散客', startDate: '', endDate: '', dateRange: '', sheets: createStandardSheets() }],
+          group: [{ id: 'trip_1', title: '潛團', startDate: '', endDate: '', dateRange: '', sheets: createGroupSheets() }],
+          class: [{ id: 'trip_2', title: '上課', startDate: '', endDate: '', dateRange: '', sheets: createLegacySheets() }],
+          fundive: [{ id: 'trip_3', title: 'Fun Dive', startDate: '', endDate: '', dateRange: '', sheets: createLegacySheets() }],
+          try: [{ id: 'trip_4', title: '散客', startDate: '', endDate: '', dateRange: '', sheets: createLegacySheets() }],
           summary: [
             {
               year: 2026,
@@ -542,7 +694,7 @@
         const tripsData = ref(defaultTripsData);
 
         onMounted(() => {
-          const savedData = localStorage.getItem('ocean_accounting_trips_data_v10');
+          const savedData = localStorage.getItem('ocean_accounting_trips_data_v14');
           if (savedData) {
             try {
               tripsData.value = JSON.parse(savedData);
@@ -557,10 +709,9 @@
         });
 
         const saveData = () => {
-          localStorage.setItem('ocean_accounting_trips_data_v10', JSON.stringify(tripsData.value));
+          localStorage.setItem('ocean_accounting_trips_data_v14', JSON.stringify(tripsData.value));
         };
 
-        // 資料匯出備份 (JSON 檔)
         const exportData = () => {
           const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tripsData.value));
           const downloadAnchor = document.createElement('a');
@@ -571,7 +722,6 @@
           downloadAnchor.remove();
         };
 
-        // 資料匯入還原
         const importData = (event) => {
           const file = event.target.files[0];
           if (!file) return;
@@ -596,8 +746,8 @@
         const sortedSummaryYears = computed(() => [...summaryData.value].sort((a, b) => b.year - a.year));
         const currentTabInfo = computed(() => mainTabs.find(t => t.id === currentMainTab.value) || mainTabs[0]);
         const activeTrip = computed(() => currentTrips.value.find(t => t.id === activeTripId.value) || currentTrips.value[0] || null);
-        const activeReceivableSheets = computed(() => activeTrip.value ? activeTrip.value.sheets.filter(s => s.type !== 'payable') : []);
-        const activePayableSheets = computed(() => activeTrip.value ? activeTrip.value.sheets.filter(s => s.type === 'payable') : []);
+        const activeReceivableSheets = computed(() => activeTrip.value ? activeTrip.value.sheets.filter(s => s.type !== 'payable' && s.type !== 'payable_deposit') : []);
+        const activePayableSheets = computed(() => activeTrip.value ? activeTrip.value.sheets.filter(s => s.type === 'payable' || s.type === 'payable_deposit') : []);
 
         watch(currentMainTab, () => {
           if (currentMainTab.value !== 'summary' && currentTrips.value.length > 0) {
@@ -639,13 +789,14 @@
         };
 
         const createNewTripGroup = () => {
+          const sheets = currentMainTab.value === 'group' ? createGroupSheets() : createLegacySheets();
           const newTrip = {
             id: 'trip_' + Date.now(),
             title: currentTabInfo.value.name,
             startDate: '',
             endDate: '',
             dateRange: '',
-            sheets: createStandardSheets()
+            sheets
           };
 
           if (!tripsData.value[currentMainTab.value]) tripsData.value[currentMainTab.value] = [];
@@ -672,8 +823,10 @@
         };
 
         const addRow = (sheet) => {
-          if (sheet.type === 'deposit') {
+          if (sheet.type === 'deposit' || sheet.type === 'payable_deposit') {
             sheet.rows.push({ name: '新品項', total: 0, note: '' });
+          } else if (sheet.type === 'insurance') {
+            sheet.rows.push({ startDate: '', endDate: '', days: 0, people: 0, price: 50 });
           } else {
             sheet.rows.push({ name: '新品項', count: 0, price: 0, note: '' });
           }
@@ -688,30 +841,58 @@
 
         const calculateSheetTotal = (sheet) => {
           if (!sheet || !sheet.rows) return 0;
-          if (sheet.type === 'deposit') {
+          if (sheet.type === 'deposit' || sheet.type === 'payable_deposit') {
             return sheet.rows.reduce((sum, r) => sum + (parseFloat(r.total) || 0), 0);
+          } else if (sheet.type === 'insurance') {
+            return sheet.rows.reduce((sum, r) => sum + ((r.days || 0) * (r.people || 0) * (r.price || 0)), 0);
           } else {
             return sheet.rows.reduce((sum, r) => sum + ((r.count || 0) * (r.price || 0)), 0);
           }
         };
 
+        // 取得「原始應收總額」（不含訂金）
+        const getGrossReceivableTotal = (trip) => {
+          if (!trip || !trip.sheets) return 0;
+          return trip.sheets
+            .filter(s => s.type !== 'payable' && s.type !== 'payable_deposit' && s.type !== 'deposit')
+            .reduce((sum, s) => sum + calculateSheetTotal(s), 0);
+        };
+
+        // 取得「應收訂金」總額
+        const getReceivableDepositTotal = (trip) => {
+          if (!trip || !trip.sheets) return 0;
+          return trip.sheets
+            .filter(s => s.type === 'deposit')
+            .reduce((sum, s) => sum + calculateSheetTotal(s), 0);
+        };
+
+        // 取得「應付訂金」總額
+        const getPayableDepositTotal = (trip) => {
+          if (!trip || !trip.sheets) return 0;
+          return trip.sheets
+            .filter(s => s.type === 'payable_deposit')
+            .reduce((sum, s) => sum + calculateSheetTotal(s), 0);
+        };
+
+        // 取得「一般應付款項」總額
+        const getGeneralPayableTotal = (trip) => {
+          if (!trip || !trip.sheets) return 0;
+          return trip.sheets
+            .filter(s => s.type === 'payable')
+            .reduce((sum, s) => sum + calculateSheetTotal(s), 0);
+        };
+
+        // 應收最終總額 = 應收總額 - 應收訂金
         const calculateTripReceivableTotal = (trip) => {
-          if (!trip || !trip.sheets) return 0;
-          let total = 0;
-          trip.sheets.forEach(s => {
-            if (s.type === 'deposit') total -= calculateSheetTotal(s);
-            else if (s.type !== 'payable') total += calculateSheetTotal(s);
-          });
-          return total;
+          return getGrossReceivableTotal(trip) - getReceivableDepositTotal(trip);
         };
 
-        const getPayableTotal = (trip) => {
-          if (!trip || !trip.sheets) return 0;
-          return trip.sheets.filter(s => s.type === 'payable').reduce((sum, s) => sum + calculateSheetTotal(s), 0);
+        // 最終淨利 = 應收總額 - 應付訂金 - 應付款項
+        const calculateTripFinalNetTotal = (trip) => {
+          return getGrossReceivableTotal(trip) - getPayableDepositTotal(trip) - getGeneralPayableTotal(trip);
         };
 
-        const calculateTripFinalNetTotal = (trip) => calculateTripReceivableTotal(trip) - getPayableTotal(trip);
-
+        // 每月總結的應收計算改為各單項的「應收總額」加總
         const getMonthlyTotals = (year, month) => {
           let receivable = 0, payable = 0;
           ['group', 'class', 'fundive', 'try'].forEach(cat => {
@@ -719,8 +900,8 @@
               if (trip.startDate) {
                 const d = new Date(trip.startDate);
                 if (!isNaN(d.getTime()) && d.getFullYear() === year && (d.getMonth() + 1) === month) {
-                  receivable += calculateTripReceivableTotal(trip);
-                  payable += getPayableTotal(trip);
+                  receivable += getGrossReceivableTotal(trip);
+                  payable += (getPayableDepositTotal(trip) + getGeneralPayableTotal(trip));
                 }
               }
             });
@@ -751,7 +932,7 @@
           }
 
           saveData();
-          showAddMonthModal.value = false;
+          showAddMonthModal = false;
           refreshIcons();
         };
 
@@ -767,8 +948,9 @@
           mainTabs, currentMainTab, activeTripId, tripsData, currentTrips, summaryData, sortedSummaryYears,
           currentTabInfo, activeTrip, activeReceivableSheets, activePayableSheets, showAddMonthModal,
           newMonthYear, newMonthValue, saveData, exportData, importData, updateTripDateRange, createNewTripGroup,
-          deleteTrip, deleteSheetBySheet, addRow, removeRow, calculateSheetTotal, calculateTripReceivableTotal,
-          getPayableTotal, calculateTripFinalNetTotal, getMonthlyTotals, calculateYearlyNetTotal, confirmAddMonth, removeSummaryMonth
+          deleteTrip, deleteSheetBySheet, addRow, removeRow, calculateSheetTotal, getGrossReceivableTotal,
+          getReceivableDepositTotal, getPayableDepositTotal, getGeneralPayableTotal, calculateTripReceivableTotal,
+          calculateTripFinalNetTotal, getMonthlyTotals, calculateYearlyNetTotal, confirmAddMonth, removeSummaryMonth
         };
       }
     }).mount('#app');
